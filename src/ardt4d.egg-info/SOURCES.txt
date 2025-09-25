@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+src/ardt4d/__init__.py
+src/ardt4d/config.py
+src/ardt4d/synth.py
+src/ardt4d/test.py
+src/ardt4d/train.py
+src/ardt4d/visualize.py
+src/ardt4d.egg-info/PKG-INFO
+src/ardt4d.egg-info/SOURCES.txt
+src/ardt4d.egg-info/dependency_links.txt
+src/ardt4d.egg-info/requires.txt
+src/ardt4d.egg-info/top_level.txt
+src/ardt4d/datasets/base.py
+src/ardt4d/datasets/build.py
+src/ardt4d/models/pvt4d.py

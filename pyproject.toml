@@ -1,0 +1,18 @@
+[project]
+name = "ardt4d"
+version = "0.1.1"
+description = "ARDT 4D Radar pipeline"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["torch>=2.1","torchvision>=0.16","numpy","matplotlib"]
+
+[build-system]
+requires = ["setuptools","wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
