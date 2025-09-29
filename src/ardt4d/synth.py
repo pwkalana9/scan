@@ -47,6 +47,17 @@ def gaussian_add(cube: np.ndarray, center, sigmas, amp: float):
     gt = np.exp(-0.5*((t - ct)/(st+1e-9))**2)
     cube += (amp * ga*gr*gd*gt).astype(cube.dtype)
 
+def stamp_mask(mask: np.ndarray, center, radii=(1,2,1,0), val=1):
+    """Write a small cuboid around the center to reduce extreme sparsity."""
+    A,R,D,T = mask.shape
+    ca,cr,cd,ct = center
+    ra,rr,rd,rt = radii
+    a0,a1 = max(0, ca-ra), min(A-1, ca+ra)
+    r0,r1 = max(0, cr-rr), min(R-1, cr+rr)
+    d0,d1 = max(0, cd-rd), min(D-1, cd+rd)
+    t0,t1 = max(0, ct-rt), min(T-1, ct+rt)
+    mask[a0:a1+1, r0:r1+1, d0:d1+1, t0:t1+1] = val
+
 def simulate_scene(dims: RadarDims, phys: RadarPhys, sh: Shadows,
                    n_objects: int = 3,
                    seed: Optional[int] = None,
@@ -63,7 +74,7 @@ def simulate_scene(dims: RadarDims, phys: RadarPhys, sh: Shadows,
     if gps_tracks:
         for gt in gps_tracks:
             lat0, lon0 = gt["lat0"], gt["lon0"]
-            track = gt["track"]  # list of (t, lat, lon)
+            track = gt["track"]  # (t, lat, lon)
             times = [p[0] for p in track]
             tmin, tmax = min(times), max(times)
             for k in range(T):
@@ -85,7 +96,7 @@ def simulate_scene(dims: RadarDims, phys: RadarPhys, sh: Shadows,
                 d_bin = velocity_to_doppler_bin(vr, D, phys.v_max_mps)
 
                 gaussian_add(cube, (az_bin, r_bin, d_bin, k), (0.8,1.2,1.0,0.3), amp=3.0)
-                mask[az_bin, r_bin, d_bin, k] = 1
+                stamp_mask(mask, (az_bin, r_bin, d_bin, k))
                 for s in range(1,5):
                     w = math.exp(-s/sh.decay_az)
                     azb = min(A-1, max(0, az_bin+s))
@@ -121,7 +132,7 @@ def simulate_scene(dims: RadarDims, phys: RadarPhys, sh: Shadows,
             db = velocity_to_doppler_bin(vr, D, phys.v_max_mps)
 
             gaussian_add(cube, (arz, rb, db, k), (0.8,1.2,1.0,0.3), amp=3.2)
-            mask[arz, rb, db, k] = 1
+            stamp_mask(mask, (arz, rb, db, k))
             for s in range(1,5):
                 w = math.exp(-s/sh.decay_az)
                 azb = min(A-1, max(0, arz+s))
@@ -133,11 +144,15 @@ def simulate_scene(dims: RadarDims, phys: RadarPhys, sh: Shadows,
 
         objects.append({"type":"kinematic_random"})
 
+    # noise floor + clip
     noise = np.random.gamma(shape=1.5, scale=0.5, size=cube.shape).astype(np.float32) * 0.2
     cube += noise
     cube = np.clip(cube, 0.0, None)
-    mx = cube.max() + 1e-6
-    cube = cube / mx
+
+    # robust per-scene normalization (99th percentile)
+    p99 = float(np.percentile(cube, 99.0))
+    scale = max(p99, 1e-6)
+    cube = cube / scale
 
     meta = dict(A=A,R=R,D=D,T=T, n_objects=n_objects,
                 lambda_m=phys.lambda_m, v_max_mps=phys.v_max_mps,
@@ -194,4 +209,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
