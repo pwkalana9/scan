@@ -89,7 +89,6 @@ class PVT4D(nn.Module):
         for blk in self.enc2: t2 = blk(t2)
         x2 = self._from_tokens(t2, shp2)
 
-        # Upsample -> match spatial size to skip before concat
         u1 = self.up1(x2)
         if u1.shape[2:] != x1.shape[2:]:
             u1 = F.interpolate(u1, size=x1.shape[2:], mode='trilinear', align_corners=False)
@@ -105,4 +104,3 @@ class PVT4D(nn.Module):
         logits = self.head(u0)  # (B,1,A,R,D)
         logits = logits.unsqueeze(-1).repeat(1,1,1,1,1,self.t_frames)
         return logits
-
